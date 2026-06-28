@@ -6,3 +6,5 @@ pydantic
 pywebpush
 cryptography
 python-multipart
+python-multipart
+openpyxl
