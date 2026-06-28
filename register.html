@@ -12,7 +12,7 @@
     .team-row{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;align-items:end}.availability{font-weight:700;font-size:.92rem}.ok{color:var(--green)}.bad{color:var(--red)}
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.stat{background:#0b1628;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.stat b{display:block;font-size:1.5rem;color:var(--cyan)}.stat span{color:var(--muted);font-size:.85rem}
     .players-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0 12px}.actions{display:flex;gap:10px;flex-wrap:wrap}button{border:0;border-radius:12px;padding:12px 18px;color:white;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#0284c7,#0369a1);box-shadow:0 10px 20px rgba(2,132,199,.18)}button.secondary{background:#1f2e46}button.danger{background:#be123c}button.green{background:linear-gradient(135deg,#059669,#047857)}button:disabled{opacity:.55;cursor:not-allowed}.player{background:rgba(11,22,40,.92);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}.player-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.player-title h3{margin:0;color:var(--yellow)}.remove{background:#7f1d1d;padding:8px 12px}.player-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.file-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:13px}
-    .note{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:#fde68a;padding:14px;border-radius:14px;line-height:1.7;margin:16px 0}.status{display:none;margin-top:16px;border-radius:14px;padding:14px;font-weight:800;text-align:center}.success{display:block;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:var(--green)}.error{display:block;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.35);color:var(--red)}.footer{text-align:center;color:var(--muted);font-size:.85rem;margin:20px 0}
+    .note{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:#fde68a;padding:14px;border-radius:14px;line-height:1.7;margin:16px 0}.status{display:none;margin-top:16px;border-radius:14px;padding:14px;font-weight:800;text-align:center}.success{display:block;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:var(--green)}.error{display:block;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.35);color:var(--red)}.footer{text-align:center;color:var(--muted);font-size:.85rem;margin:20px 0}.wa-box{display:block;margin-top:12px;padding:16px;border-radius:16px;background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.45);color:#d1fae5;line-height:1.8}.wa-box a{display:inline-block;margin-top:10px;background:#16a34a;color:white;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:900}
     @media(max-width:850px){body{padding:12px}.grid,.team-row,.player-grid,.file-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.players-head{align-items:flex-start;flex-direction:column}.hero h1{font-size:1.6rem}}
   </style>
 </head>
@@ -66,6 +66,7 @@ let nameAvailable = false;
 const playersEl = document.getElementById('players');
 const digitMap = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
 function normalizeDigits(value){return String(value || '').replace(/[٠-٩۰-۹]/g, d => digitMap[d] || d);}
+function escapeHtml(s){return String(s||'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 
 function playerTemplate(i){
   return `<div class="player" data-index="${i}">
@@ -105,6 +106,17 @@ function updateStats(){
   document.getElementById('countNeeded').textContent=(male>=6?'✅':'❌')+' / '+(female>=6?'✅':'❌');
 }
 function showStatus(msg, ok){ const s=document.getElementById('status'); s.textContent=msg; s.className='status '+(ok?'success':'error'); }
+function showSuccessWithWhatsapp(data){
+  const s=document.getElementById('status');
+  const group=data.whatsapp_group||{};
+  const link=group.link||'';
+  if(link){
+    s.innerHTML=`تم تسجيل الفريق بنجاح ✅<div class="wa-box">لينك جروب الواتساب الخاص بفريقك:<br><b>${escapeHtml(group.name||'جروب الفريق')}</b><br><a href="${escapeHtml(link)}" target="_blank">دخول جروب الواتساب</a></div>`;
+  }else{
+    s.textContent='تم تسجيل الفريق بنجاح ✅';
+  }
+  s.className='status success';
+}
 async function checkName(){
   const name=document.getElementById('teamName').value.trim();
   const el=document.getElementById('availability');
@@ -144,7 +156,7 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
     const res=await fetch('/api/register-team',{method:'POST',body:fd});
     const data=await res.json();
     if(!res.ok) throw new Error(data.detail||'حدث خطأ');
-    showStatus('تم تسجيل الفريق بنجاح ✅', true);
+    showSuccessWithWhatsapp(data);
     e.target.reset(); playersEl.innerHTML=''; playersCount=0; for(let i=0;i<12;i++) addPlayer(); checkName();
   }catch(err){showStatus(err.message, false)}
   finally{btn.disabled=false; btn.textContent='حفظ تسجيل الفريق ✅'}
