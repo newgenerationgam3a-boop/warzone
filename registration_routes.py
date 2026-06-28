@@ -31,6 +31,34 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter()
 
+
+# ----- HTML pages for the registration addon -----
+@router.get("/register", include_in_schema=False)
+def serve_register_page():
+    page = APP_DIR / "register.html"
+    if not page.exists():
+        raise HTTPException(status_code=404, detail="register.html غير موجود بجانب main.py")
+    return FileResponse(page)
+
+
+@router.get("/registrations", include_in_schema=False)
+def serve_registrations_page():
+    page = APP_DIR / "registrations.html"
+    if not page.exists():
+        raise HTTPException(status_code=404, detail="registrations.html غير موجود بجانب main.py")
+    return FileResponse(page)
+
+
+@router.get("/register.html", include_in_schema=False)
+def serve_register_html_alias():
+    return serve_register_page()
+
+
+@router.get("/registrations.html", include_in_schema=False)
+def serve_registrations_html_alias():
+    return serve_registrations_page()
+
+
 ALLOWED_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 REQUIRED_PLAYER_FIELDS = ["name", "age", "birthdate", "national_id", "university", "college", "gender"]
 FILE_FIELDS = ["photo", "id_card", "university_card"]
