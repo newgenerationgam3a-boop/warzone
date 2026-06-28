@@ -77,7 +77,7 @@ function renderTable(){
   document.getElementById('statPlayers').textContent=teams.reduce((a,t)=>a+(t.players_count||0),0);
   document.getElementById('statMales').textContent=teams.reduce((a,t)=>a+(t.males||0),0);
   document.getElementById('statFemales').textContent=teams.reduce((a,t)=>a+(t.females||0),0);
-  body.innerHTML=filtered.map(t=>`<tr><td><b>${escapeHtml(t.team_name)}</b></td><td><span class="pill">${t.players_count}</span></td><td>${t.males}</td><td>${t.females}</td><td>${t.whatsapp_group?.link?`<a href="${escapeHtml(t.whatsapp_group.link)}" target="_blank" style="color:var(--green);font-weight:800">جروب ${t.whatsapp_group.slot}</a>`:'-'}</td><td>${formatDate(t.updated_at||t.created_at)}</td><td><div class="actions"><button onclick="openTeam('${t.id}')">عرض/تعديل</button><button class="danger" onclick="deleteTeam('${t.id}')">حذف</button></div></td></tr>`).join('') || '<tr><td colspan="7" class="muted">لا توجد تسجيلات</td></tr>';
+  body.innerHTML=filtered.map(t=>`<tr><td><b>${escapeHtml(t.team_name)}</b></td><td><span class="pill">${t.players_count}</span></td><td>${t.males}</td><td>${t.females}</td><td>${t.whatsapp_group?.link?`<a href="${escapeHtml(t.whatsapp_group.link)}" target="_blank" style="color:var(--green);font-weight:800">جروب ${t.whatsapp_group.slot}</a>`:'-'}</td><td>${formatDate(t.updated_at||t.created_at)}</td><td><div class="actions"><button onclick="openTeam('${t.id}')">عرض/تعديل</button><button class="green" onclick="downloadTeam('${t.id}')">تحميل الفريق</button><button class="danger" onclick="deleteTeam('${t.id}')">حذف</button></div></td></tr>`).join('') || '<tr><td colspan="7" class="muted">لا توجد تسجيلات</td></tr>';
 }
 function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function formatDate(s){if(!s)return '-';try{return new Date(s).toLocaleString('ar-EG')}catch(e){return s}}
@@ -122,6 +122,7 @@ async function saveEdit(){
 }
 async function deleteTeam(id){if(!confirm('متأكد من حذف الفريق وكل الصور؟'))return;try{await api('/api/registrations/'+id,{method:'DELETE'});await loadTeams();status('mainStatus','تم حذف الفريق',true)}catch(e){status('mainStatus',e.message,false)}}
 function exportExcel(){window.location='/api/registrations/export?p='+encodeURIComponent(PASS)}
+function downloadTeam(id){window.location='/api/registrations/'+id+'/download?p='+encodeURIComponent(PASS)}
 if(PASS){document.getElementById('password').value=PASS;login();}
 </script>
 </body>
