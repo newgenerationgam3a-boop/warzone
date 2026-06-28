@@ -63,6 +63,32 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": 
 REQUIRED_PLAYER_FIELDS = ["name", "age", "birthdate", "national_id", "university", "college", "gender"]
 FILE_FIELDS = ["photo", "id_card", "university_card"]
 
+ARABIC_DIGIT_TRANSLATION = str.maketrans({
+    "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+    "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+    "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+    "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9",
+})
+
+
+def to_english_digits(value: Any) -> str:
+    """Accept Arabic/English digits and return a string with English digits only."""
+    if value is None:
+        return ""
+    return str(value).translate(ARABIC_DIGIT_TRANSLATION).strip()
+
+
+def normalize_birthdate(value: Any) -> str:
+    raw = to_english_digits(value)
+    raw = raw.replace("/", "-").replace(".", "-").replace("–", "-").replace("—", "-")
+    raw = re.sub(r"\s+", "", raw)
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y"):
+        try:
+            return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    raise ValueError("invalid date")
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -131,14 +157,15 @@ def validate_players(players: List[Dict[str, Any]], old_team: Optional[Dict[str,
                 raise HTTPException(status_code=400, detail=f"بيانات اللاعب رقم {idx} ناقصة: {field}")
 
         try:
-            age = int(player.get("age"))
+            age_text = re.sub(r"\D+", "", to_english_digits(player.get("age")))
+            age = int(age_text)
             if age <= 0 or age > 100:
                 raise ValueError
             player["age"] = age
         except Exception:
             raise HTTPException(status_code=400, detail=f"سن اللاعب رقم {idx} غير صحيح.")
 
-        national_id = re.sub(r"\D+", "", str(player.get("national_id", "")))
+        national_id = re.sub(r"\D+", "", to_english_digits(player.get("national_id", "")))
         if len(national_id) != 14:
             raise HTTPException(status_code=400, detail=f"الرقم القومي للاعب رقم {idx} لازم يكون 14 رقم.")
         if national_id in seen_national_ids:
@@ -156,9 +183,9 @@ def validate_players(players: List[Dict[str, Any]], old_team: Optional[Dict[str,
         else:
             raise HTTPException(status_code=400, detail=f"نوع اللاعب رقم {idx} لازم يكون ذكر أو أنثى.")
 
-        # Basic date format check
+        # Basic date format check + normalize all date digits to English
         try:
-            datetime.strptime(str(player.get("birthdate")), "%Y-%m-%d")
+            player["birthdate"] = normalize_birthdate(player.get("birthdate"))
         except Exception:
             raise HTTPException(status_code=400, detail=f"تاريخ ميلاد اللاعب رقم {idx} غير صحيح.")
 
@@ -231,9 +258,9 @@ async def build_team_from_form(request: Request, existing: Optional[Dict[str, An
         player = {
             "id": player_id,
             "name": str(raw.get("name", "")).strip(),
-            "age": raw.get("age", ""),
-            "birthdate": str(raw.get("birthdate", "")).strip(),
-            "national_id": str(raw.get("national_id", "")).strip(),
+            "age": to_english_digits(raw.get("age", "")),
+            "birthdate": to_english_digits(raw.get("birthdate", "")),
+            "national_id": to_english_digits(raw.get("national_id", "")),
             "university": str(raw.get("university", "")).strip(),
             "college": str(raw.get("college", "")).strip(),
             "gender": str(raw.get("gender", "")).strip(),
@@ -380,50 +407,62 @@ def export_registrations(request: Request):
     require_admin(request)
     data = load_data()
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Teams Registrations"
-    headers = [
-        "اسم المنتخب", "تاريخ التسجيل", "اسم اللاعب", "السن", "تاريخ الميلاد", "الرقم القومي",
-        "الجامعة", "الكلية", "النوع", "الصورة الشخصية", "صورة البطاقة", "صورة كارنيه الجامعة"
-    ]
-    ws.append(headers)
 
-    base = str(request.base_url).rstrip("/")
-    password = request.headers.get("x-admin-password") or request.query_params.get("p") or request.query_params.get("password") or ""
+    # المطلوب: كل فريق في Sheet لوحده، وبس الأعمدة الأساسية:
+    # الاسم، السن، تاريخ الميلاد.
+    default_ws = wb.active
+    wb.remove(default_ws)
 
-    for team in data.get("teams", []):
-        for player in team.get("players", []):
-            urls = {}
-            for kind in FILE_FIELDS:
-                if player.get("files", {}).get(kind):
-                    urls[kind] = f"{base}/api/registration-file/{team['id']}/{player['id']}/{kind}?p={password}"
-                else:
-                    urls[kind] = ""
-            ws.append([
-                team.get("team_name", ""),
-                team.get("created_at", ""),
-                player.get("name", ""),
-                player.get("age", ""),
-                player.get("birthdate", ""),
-                player.get("national_id", ""),
-                player.get("university", ""),
-                player.get("college", ""),
-                player.get("gender", ""),
-                urls["photo"],
-                urls["id_card"],
-                urls["university_card"],
-            ])
+    def safe_sheet_title(title: str, used: set) -> str:
+        title = str(title or "Team").strip() or "Team"
+        # Excel لا يسمح بهذه الرموز في اسم الشيت: : \/ ? * [ ]
+        title = re.sub(r"[:\\/\?\*\[\]]+", "-", title)
+        title = re.sub(r"\s+", " ", title).strip()
+        title = title[:31] or "Team"
+        base = title
+        counter = 2
+        while title in used:
+            suffix = f" {counter}"
+            title = (base[:31-len(suffix)] + suffix)[:31]
+            counter += 1
+        used.add(title)
+        return title
 
-    for cell in ws[1]:
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = PatternFill("solid", fgColor="1E3A8A")
-        cell.alignment = Alignment(horizontal="center")
-    for col in ws.columns:
-        max_len = 12
-        col_letter = col[0].column_letter
-        for cell in col:
-            max_len = max(max_len, len(str(cell.value or ""))[:80] if False else min(len(str(cell.value or "")), 80))
-        ws.column_dimensions[col_letter].width = max_len + 4
+    used_titles = set()
+    teams = data.get("teams", [])
+
+    if not teams:
+        ws = wb.create_sheet("No registrations")
+        ws.append(["اسم اللاعب", "السن", "تاريخ الميلاد"])
+    else:
+        for team in teams:
+            ws = wb.create_sheet(safe_sheet_title(team.get("team_name", "Team"), used_titles))
+            ws.append(["اسم اللاعب", "السن", "تاريخ الميلاد"])
+            for player in team.get("players", []):
+                birthdate = player.get("birthdate", "")
+                try:
+                    birthdate = normalize_birthdate(birthdate)
+                except Exception:
+                    birthdate = to_english_digits(birthdate)
+                ws.append([
+                    player.get("name", ""),
+                    to_english_digits(player.get("age", "")),
+                    birthdate,
+                ])
+
+            # تنسيق بسيط لكل شيت.
+            for cell in ws[1]:
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill("solid", fgColor="1E3A8A")
+                cell.alignment = Alignment(horizontal="center")
+
+            widths = {"A": 28, "B": 12, "C": 18}
+            for col, width in widths.items():
+                ws.column_dimensions[col].width = width
+
+            for row in ws.iter_rows(min_row=2):
+                for cell in row:
+                    cell.alignment = Alignment(horizontal="center")
 
     output = BytesIO()
     wb.save(output)
