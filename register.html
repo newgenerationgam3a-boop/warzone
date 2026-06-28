@@ -41,7 +41,7 @@
       <div class="availability" id="availability">اكتب الاسم للتحقق من توفره</div>
     </div>
 
-    <div class="note">كل لاعب مطلوب له: الاسم، السن، تاريخ الميلاد، الرقم القومي، الجامعة، الكلية، النوع، صورة شخصية، صورة البطاقة، وصورة كارنيه الجامعة. ة </div>
+    <div class="note">كل لاعب مطلوب له: الاسم، السن، تاريخ الميلاد، الرقم القومي، الجامعة، الكلية، النوع، صورة شخصية، صورة البطاقة، وصورة كارنيه الجامعة. الصور هتتصغّر وتتترفع واحدة واحدة قبل حفظ التسجيل عشان نمنع مشكلة Failed to fetch.</div>
 
     <div class="stats">
       <div class="stat"><b id="countAll">12</b><span>عدد اللاعبين</span></div>
@@ -75,10 +75,13 @@ let nameTimer = null;
 let nameAvailable = false;
 let draftReady = false;
 const playersEl = document.getElementById('players');
-const DRAFT_KEY = 'warzone_registration_form_draft_v3';
-const DB_NAME = 'warzone_registration_files_v3';
+const DRAFT_KEY = 'warzone_registration_form_draft_v4';
+const DB_NAME = 'warzone_registration_files_v4';
 const DB_STORE = 'files';
 const FILE_KINDS = ['photo','id_card','university_card'];
+const DRAFT_ID_KEY = 'warzone_registration_draft_id_v1';
+const DRAFT_ID = localStorage.getItem(DRAFT_ID_KEY) || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '_' + Math.random().toString(16).slice(2));
+localStorage.setItem(DRAFT_ID_KEY, DRAFT_ID);
 const digitMap = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
 function normalizeDigits(value){return String(value || '').replace(/[٠-٩۰-۹]/g, d => digitMap[d] || d);}
 function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
@@ -232,6 +235,7 @@ async function clearDraft(confirmFirst){
   if(confirmFirst && !confirm('تمسح كل البيانات المحفوظة مؤقتًا؟')) return;
   localStorage.removeItem(DRAFT_KEY);
   await idbClear();
+  localStorage.removeItem(DRAFT_ID_KEY);
   document.getElementById('draftInfo').textContent='تم مسح البيانات المحفوظة.';
 }
 function bindPlayerEvents(i){
@@ -265,11 +269,27 @@ async function getUploadFile(i, kind){
   return await idbGet(fileKey(i,kind));
 }
 
-async function submitWithTimeout(url, options, timeoutMs=120000){
+async function fetchJsonWithTimeout(url, options, timeoutMs=120000){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(), timeoutMs);
-  try{return await fetch(url, {...options, signal:controller.signal});}
-  finally{clearTimeout(timer);}
+  try{
+    const res = await fetch(url, {...options, signal:controller.signal});
+    let data={};
+    try{data=await res.json();}catch(_){data={detail:await res.text()};}
+    if(!res.ok) throw new Error(data.detail || 'حدث خطأ في السيرفر');
+    return data;
+  }finally{clearTimeout(timer);}
+}
+async function uploadTempFile(idx, kind, file, note, progressText){
+  const fd = new FormData();
+  fd.append('draft_id', DRAFT_ID);
+  fd.append('player_key', String(idx));
+  fd.append('kind', kind);
+  fd.append('file', file, file.name || `${kind}_${idx}.jpg`);
+  if(note) note.textContent = progressText;
+  const data = await fetchJsonWithTimeout('/api/register-upload-temp', {method:'POST', body:fd}, 90000);
+  if(note) note.textContent = 'تم رفع الصورة مؤقتًا ✅';
+  return data.temp_file;
 }
 
 document.getElementById('teamName').addEventListener('input',()=>{clearTimeout(nameTimer);nameTimer=setTimeout(checkName,450);saveDraftSoon();});
@@ -289,14 +309,12 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
   if(genders.filter(g=>g==='ذكر').length<6 || genders.filter(g=>g==='أنثى').length<6){showStatus('لازم يكون في الفريق على الأقل 6 ذكور و6 إناث.', false);return;}
   const btn=document.getElementById('submitBtn');
   const uploadNote=document.getElementById('uploadingNote');
-  btn.disabled=true; btn.textContent='جاري تجهيز الصور...'; uploadNote.classList.add('show');
-  const fd=new FormData();
-  fd.append('team_name', document.getElementById('teamName').value.trim());
+  btn.disabled=true; btn.textContent='جاري رفع الصور...'; uploadNote.classList.add('show');
   const players=[];
   try{
     for(let idx=0; idx<playersCount; idx++){
       const card=document.querySelector(`.player[data-index="${idx}"]`);
-      const data={client_key:String(idx)};
+      const data={client_key:String(idx), temp_files:{}};
       ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{data[k]=card.querySelector(`[name="${k}_${idx}"]`)?.value?.trim()||'';});
       data.age = normalizeDigits(data.age);
       data.national_id = normalizeDigits(data.national_id);
@@ -304,21 +322,23 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
       for(const kind of FILE_KINDS){
         const file=await getUploadFile(idx, kind);
         if(!file) throw new Error(`صورة ${kind} مطلوبة للاعب رقم ${idx+1}.`);
-        fd.append(`${kind}_${idx}`, file, file.name || `${kind}_${idx}.jpg`);
+        const note=document.getElementById(`stored_${kind}_${idx}`);
+        btn.textContent=`رفع صور اللاعب ${idx+1} من ${playersCount}...`;
+        data.temp_files[kind] = await uploadTempFile(idx, kind, file, note, `جاري رفع الصورة ${kind}...`);
       }
       players.push(data);
     }
-    fd.append('players_json', JSON.stringify(players));
-    btn.textContent='جاري رفع التسجيل...';
-    const res=await submitWithTimeout('/api/register-team',{method:'POST',body:fd});
-    let data={};
-    try{data=await res.json();}catch(_){data={detail:await res.text()};}
-    if(!res.ok) throw new Error(data.detail||'حدث خطأ في الحفظ');
-    showSuccessWithWhatsapp(data);
+    btn.textContent='جاري حفظ التسجيل النهائي...';
+    const result=await fetchJsonWithTimeout('/api/register-team-json',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({team_name: document.getElementById('teamName').value.trim(), players})
+    },120000);
+    showSuccessWithWhatsapp(result);
     await clearDraft(false);
     e.target.reset(); playersEl.innerHTML=''; playersCount=0; for(let i=0;i<12;i++) addPlayer(false); updateStats(); checkName();
   }catch(err){
-    const msg = err.name === 'AbortError' ? 'الاتصال أخذ وقت طويل. غالبًا الصور كبيرة أو النت ضعيف؛ جرّب تاني.' : (err.message || 'فشل الاتصال بالسيرفر. تأكد من النت وجرب مرة أخرى.');
+    const msg = err.name === 'AbortError' ? 'الاتصال أخذ وقت طويل. الصور هتترفع واحدة واحدة، جرّب تاني أو قلل حجم الصور.' : (err.message || 'فشل الاتصال بالسيرفر. تأكد من النت وجرب مرة أخرى.');
     showStatus(msg, false);
   }finally{
     uploadNote.classList.remove('show');
@@ -328,3 +348,4 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
 </script>
 </body>
 </html>
+
