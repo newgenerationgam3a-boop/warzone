@@ -10,10 +10,11 @@
     .wrap{max-width:1150px;margin:0 auto}.hero{text-align:center;margin:20px 0 28px}.hero h1{margin:0;font-size:2.2rem;color:var(--cyan)}.hero p{color:var(--muted);font-size:1rem;line-height:1.8}.card{background:rgba(16,29,51,.88);border:1px solid rgba(148,163,184,.2);border-radius:22px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:7px}label{color:var(--muted);font-size:.92rem}input,select,textarea{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:#0b1628;color:var(--text);font-size:1rem}input[type=file]{padding:10px;background:#07111f}input:focus,select:focus{outline:0;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
     .team-row{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;align-items:end}.availability{font-weight:700;font-size:.92rem}.ok{color:var(--green)}.bad{color:var(--red)}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.stat{background:#0b1628;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.stat b{display:block;font-size:1.5rem;color:var(--cyan)}.stat span{color:var(--muted);font-size:.85rem}
-    .players-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0 12px}.actions{display:flex;gap:10px;flex-wrap:wrap}button{border:0;border-radius:12px;padding:12px 18px;color:white;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#0284c7,#0369a1);box-shadow:0 10px 20px rgba(2,132,199,.18)}button.secondary{background:#1f2e46}button.danger{background:#be123c}button.green{background:linear-gradient(135deg,#059669,#047857)}button:disabled{opacity:.55;cursor:not-allowed}.player{background:rgba(11,22,40,.92);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}.player-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.player-title h3{margin:0;color:var(--yellow)}.remove{background:#7f1d1d;padding:8px 12px}.player-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.file-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:13px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.stat{background:#0b1628;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.stat b{display:block;font-size:1.5rem;color:var(--cyan)}.stat span{color:var(--muted);font-size:.86rem}.players-head{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.actions{display:flex;gap:10px;flex-wrap:wrap}button{border:0;border-radius:13px;padding:12px 18px;color:white;background:linear-gradient(135deg,#0284c7,#0369a1);font-weight:800;cursor:pointer}button:hover{filter:brightness(1.08)}button:disabled{opacity:.65;cursor:not-allowed}.secondary{background:#334155}.danger{background:#be123c}.green{background:linear-gradient(135deg,#10b981,#059669)}
+    .player{background:rgba(11,22,40,.72);border:1px solid rgba(148,163,184,.18);border-radius:18px;padding:18px;margin-bottom:14px}.player-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}.player-title h3{margin:0;color:var(--yellow)}.remove{background:#be123c;padding:8px 12px}.player-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.file-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:13px}
     .note{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:#fde68a;padding:14px;border-radius:14px;line-height:1.7;margin:16px 0}.status{display:none;margin-top:16px;border-radius:14px;padding:14px;font-weight:800;text-align:center}.success{display:block;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:var(--green)}.error{display:block;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.35);color:var(--red)}.footer{text-align:center;color:var(--muted);font-size:.85rem;margin:20px 0}.wa-box{display:block;margin-top:12px;padding:16px;border-radius:16px;background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.45);color:#d1fae5;line-height:1.8}.wa-box a{display:inline-block;margin-top:10px;background:#16a34a;color:white;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:900}
-    @media(max-width:850px){body{padding:12px}.grid,.team-row,.player-grid,.file-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.players-head{align-items:flex-start;flex-direction:column}.hero h1{font-size:1.6rem}}
+    .draft-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;padding:12px 14px;border-radius:14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.24);color:#bae6fd;line-height:1.6}.draft-bar small{color:var(--muted)}.tiny{padding:8px 12px;font-size:.85rem}.stored-file{font-size:.78rem;color:#86efac;margin-top:5px;line-height:1.4}.uploading-note{font-size:.9rem;color:#fde68a;text-align:center;display:none;margin-top:10px}.uploading-note.show{display:block}
+    @media(max-width:850px){body{padding:12px}.grid,.team-row,.player-grid,.file-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.players-head{align-items:flex-start;flex-direction:column}.hero h1{font-size:1.6rem}.draft-bar{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
@@ -24,6 +25,14 @@
   </section>
 
   <form id="registrationForm" class="card">
+    <div class="draft-bar">
+      <div>
+        <b>الحفظ التلقائي شغال ✅</b><br>
+        <small id="draftInfo">لو عملت Refresh هترجع البيانات تلقائيًا. الصور كمان بتتحفظ كنسخة مؤقتة على جهازك قدر الإمكان.</small>
+      </div>
+      <button type="button" class="secondary tiny" onclick="clearDraft(true)">مسح البيانات المحفوظة</button>
+    </div>
+
     <div class="team-row">
       <div class="field">
         <label>اسم المنتخب</label>
@@ -32,7 +41,7 @@
       <div class="availability" id="availability">اكتب الاسم للتحقق من توفره</div>
     </div>
 
-    <div class="note">كل لاعب مطلوب له: الاسم، السن، تاريخ الميلاد، الرقم القومي، الجامعة، الكلية، النوع، صورة شخصية، صورة البطاقة، وصورة كارنيه الجامعة.</div>
+    <div class="note">كل لاعب مطلوب له: الاسم، السن، تاريخ الميلاد، الرقم القومي، الجامعة، الكلية، النوع، صورة شخصية، صورة البطاقة، وصورة كارنيه الجامعة. الصور هتتصغّر تلقائيًا قبل الإرسال عشان نمنع مشكلة Failed to fetch.</div>
 
     <div class="stats">
       <div class="stat"><b id="countAll">12</b><span>عدد اللاعبين</span></div>
@@ -44,8 +53,8 @@
     <div class="players-head">
       <h2 style="margin:0;color:var(--cyan)">بيانات اللاعبين</h2>
       <div class="actions">
-        <button type="button" class="secondary" onclick="addPlayer()">+ إضافة لاعب</button>
-        <button type="button" class="danger" onclick="removeLastPlayer()">- حذف آخر لاعب</button>
+        <button type="button" class="secondary" onclick="addPlayer(true)">+ إضافة لاعب</button>
+        <button type="button" class="danger" onclick="removeLastPlayer(true)">- حذف آخر لاعب</button>
       </div>
     </div>
 
@@ -54,6 +63,7 @@
     <div class="actions" style="margin-top:18px;justify-content:center">
       <button id="submitBtn" type="submit" class="green">حفظ تسجيل الفريق ✅</button>
     </div>
+    <div id="uploadingNote" class="uploading-note">جاري تجهيز الصور ورفع التسجيل... متقفلش الصفحة.</div>
     <div id="status" class="status"></div>
   </form>
   <div class="footer">War Zone Registration System</div>
@@ -63,39 +73,86 @@
 let playersCount = 0;
 let nameTimer = null;
 let nameAvailable = false;
+let draftReady = false;
 const playersEl = document.getElementById('players');
+const DRAFT_KEY = 'warzone_registration_form_draft_v3';
+const DB_NAME = 'warzone_registration_files_v3';
+const DB_STORE = 'files';
+const FILE_KINDS = ['photo','id_card','university_card'];
 const digitMap = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
 function normalizeDigits(value){return String(value || '').replace(/[٠-٩۰-۹]/g, d => digitMap[d] || d);}
-function escapeHtml(s){return String(s||'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function fileKey(i, kind){ return `${kind}_${i}`; }
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)) return resolve(null);
+    const req = indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPut(key, value){ const db=await openDB(); if(!db) return; return new Promise((res,rej)=>{const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(value,key); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
+async function idbGet(key){ const db=await openDB(); if(!db) return null; return new Promise((res,rej)=>{const tx=db.transaction(DB_STORE,'readonly'); const rq=tx.objectStore(DB_STORE).get(key); rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>rej(rq.error);}); }
+async function idbDelete(key){ const db=await openDB(); if(!db) return; return new Promise((res,rej)=>{const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).delete(key); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
+async function idbClear(){ const db=await openDB(); if(!db) return; return new Promise((res,rej)=>{const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).clear(); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
+
+async function compressImage(file){
+  if(!file || !file.type || !file.type.startsWith('image/')) return file;
+  if(file.size <= 900 * 1024) return file;
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      const max = 1600;
+      if(w > max || h > max){
+        const ratio = Math.min(max / w, max / h);
+        w = Math.round(w * ratio); h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob)=>{
+        if(!blob) return resolve(file);
+        const base = (file.name || 'image').replace(/\.[^.]+$/, '');
+        resolve(new File([blob], `${base}.jpg`, {type:'image/jpeg', lastModified: Date.now()}));
+      }, 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
 
 function playerTemplate(i){
   return `<div class="player" data-index="${i}">
-    <div class="player-title"><h3>لاعب رقم ${i+1}</h3>${i>=12?'<button type="button" class="remove" onclick="removePlayer('+i+')">حذف</button>':''}</div>
+    <div class="player-title"><h3>لاعب رقم ${i+1}</h3>${i>=12?'<button type="button" class="remove" onclick="removePlayer('+i+', true)">حذف</button>':''}</div>
     <div class="player-grid">
       <div class="field"><label>اسم اللاعب</label><input required name="name_${i}" placeholder="الاسم بالكامل"></div>
-      <div class="field"><label>السن</label><input required name="age_${i}" type="text" inputmode="numeric" maxlength="3" onblur="this.value=normalizeDigits(this.value)" placeholder="مثال: 20 أو ٢٠"></div>
+      <div class="field"><label>السن</label><input required name="age_${i}" type="text" inputmode="numeric" maxlength="3" onblur="this.value=normalizeDigits(this.value); saveDraftSoon();" placeholder="مثال: 20 أو ٢٠"></div>
       <div class="field"><label>تاريخ الميلاد</label><input required name="birthdate_${i}" type="date" min="1950-01-01" max="2020-12-31" onclick="openDatePicker(this)" onfocus="openDatePicker(this)"></div>
-      <div class="field"><label>الرقم القومي</label><input required name="national_id_${i}" inputmode="numeric" maxlength="14" onblur="this.value=normalizeDigits(this.value)" placeholder="14 رقم عربي أو إنجليزي"></div>
+      <div class="field"><label>الرقم القومي</label><input required name="national_id_${i}" inputmode="numeric" maxlength="14" onblur="this.value=normalizeDigits(this.value); saveDraftSoon();" placeholder="14 رقم عربي أو إنجليزي"></div>
       <div class="field"><label>الجامعة</label><input required name="university_${i}" placeholder="اسم الجامعة"></div>
       <div class="field"><label>الكلية</label><input required name="college_${i}" placeholder="اسم الكلية"></div>
-      <div class="field"><label>النوع</label><select required name="gender_${i}" onchange="updateStats()"><option value="">اختار</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
+      <div class="field"><label>النوع</label><select required name="gender_${i}" onchange="updateStats(); saveDraftSoon();"><option value="">اختار</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
     </div>
     <div class="file-grid">
-      <div class="field"><label>صورة شخصية</label><input required type="file" name="photo_${i}" accept="image/png,image/jpeg,image/webp"></div>
-      <div class="field"><label>صورة البطاقة</label><input required type="file" name="id_card_${i}" accept="image/png,image/jpeg,image/webp"></div>
-      <div class="field"><label>صورة كارنيه الجامعة</label><input required type="file" name="university_card_${i}" accept="image/png,image/jpeg,image/webp"></div>
+      <div class="field"><label>صورة شخصية</label><input type="file" data-kind="photo" data-index="${i}" name="photo_${i}" accept="image/png,image/jpeg,image/webp"><div class="stored-file" id="stored_photo_${i}"></div></div>
+      <div class="field"><label>صورة البطاقة</label><input type="file" data-kind="id_card" data-index="${i}" name="id_card_${i}" accept="image/png,image/jpeg,image/webp"><div class="stored-file" id="stored_id_card_${i}"></div></div>
+      <div class="field"><label>صورة كارنيه الجامعة</label><input type="file" data-kind="university_card" data-index="${i}" name="university_card_${i}" accept="image/png,image/jpeg,image/webp"><div class="stored-file" id="stored_university_card_${i}"></div></div>
     </div>
   </div>`;
 }
+function openDatePicker(input){ try{ if(input && typeof input.showPicker === 'function') input.showPicker(); }catch(e){} }
 
-function openDatePicker(input){
-  try{ if(input && typeof input.showPicker === 'function') input.showPicker(); }catch(e){}
-}
-
-function rerenderNumbers(){[...document.querySelectorAll('.player')].forEach((card,idx)=>{card.dataset.index=idx;card.querySelector('h3').textContent='لاعب رقم '+(idx+1);});}
-function addPlayer(){ if(playersCount>=15){showStatus('الفريق لا يزيد عن 15 فرد.', false);return;} playersEl.insertAdjacentHTML('beforeend', playerTemplate(playersCount)); playersCount++; updateStats(); }
-function removePlayer(i){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} const cards=[...document.querySelectorAll('.player')]; cards[i]?.remove(); playersCount--; rerenderNumbers(); updateStats(); }
-function removeLastPlayer(){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} playersEl.lastElementChild.remove(); playersCount--; updateStats(); }
+function addPlayer(shouldSave=false){ if(playersCount>=15){showStatus('الفريق لا يزيد عن 15 فرد.', false);return;} playersEl.insertAdjacentHTML('beforeend', playerTemplate(playersCount)); bindPlayerEvents(playersCount); playersCount++; updateStats(); if(shouldSave) saveDraftSoon(); }
+function removePlayer(i, shouldSave=false){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} document.querySelector(`.player[data-index="${i}"]`)?.remove(); playersCount--; rebuildPlayerIndexes(); updateStats(); if(shouldSave) saveDraftSoon(); }
+function removeLastPlayer(shouldSave=false){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} playersEl.lastElementChild.remove(); playersCount--; updateStats(); if(shouldSave) saveDraftSoon(); }
+function rebuildPlayerIndexes(){[...document.querySelectorAll('.player')].forEach((card,idx)=>{card.dataset.index=idx;card.querySelector('h3').textContent='لاعب رقم '+(idx+1);});}
 function updateStats(){
   const genders=[...document.querySelectorAll('select[name^="gender_"]')].map(s=>s.value);
   const male=genders.filter(g=>g==='ذكر').length;
@@ -112,25 +169,117 @@ function showSuccessWithWhatsapp(data){
   const link=group.link||'';
   if(link){
     s.innerHTML=`تم تسجيل الفريق بنجاح ✅<div class="wa-box">لينك جروب الواتساب الخاص بفريقك:<br><b>${escapeHtml(group.name||'جروب الفريق')}</b><br><a href="${escapeHtml(link)}" target="_blank">دخول جروب الواتساب</a></div>`;
-  }else{
-    s.textContent='تم تسجيل الفريق بنجاح ✅';
-  }
+  }else{s.textContent='تم تسجيل الفريق بنجاح ✅';}
   s.className='status success';
 }
+
 async function checkName(){
   const name=document.getElementById('teamName').value.trim();
   const el=document.getElementById('availability');
   nameAvailable=false;
   if(!name){el.textContent='اكتب الاسم للتحقق من توفره'; el.className='availability'; return;}
-  const res=await fetch('/api/team-name-available?name='+encodeURIComponent(name));
-  const data=await res.json();
-  nameAvailable=data.available;
-  el.textContent=data.message;
-  el.className='availability '+(data.available?'ok':'bad');
+  try{
+    const res=await fetch('/api/team-name-available?name='+encodeURIComponent(name), {cache:'no-store'});
+    const data=await res.json();
+    nameAvailable=!!data.available;
+    el.textContent=data.message || (nameAvailable ? 'الاسم متاح' : 'الاسم غير متاح');
+    el.className='availability '+(nameAvailable?'ok':'bad');
+  }catch(e){
+    el.textContent='تعذر التحقق الآن، حاول مرة أخرى'; el.className='availability bad';
+  }
 }
-document.getElementById('teamName').addEventListener('input',()=>{clearTimeout(nameTimer);nameTimer=setTimeout(checkName,450);});
+let saveTimer=null;
+function saveDraftSoon(){ if(!draftReady) return; clearTimeout(saveTimer); saveTimer=setTimeout(saveDraft,250); }
+function collectTextDraft(){
+  const players=[];
+  for(let i=0;i<playersCount;i++){
+    const card=document.querySelector(`.player[data-index="${i}"]`);
+    if(!card) continue;
+    const p={};
+    ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{p[k]=card.querySelector(`[name="${k}_${i}"]`)?.value || '';});
+    players.push(p);
+  }
+  return {teamName:document.getElementById('teamName').value || '', players, updatedAt:new Date().toISOString()};
+}
+function saveDraft(){
+  try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(collectTextDraft())); document.getElementById('draftInfo').textContent='آخر حفظ تلقائي: '+new Date().toLocaleTimeString('ar-EG'); }catch(e){}
+}
+async function restoreDraft(){
+  const raw=localStorage.getItem(DRAFT_KEY);
+  if(!raw) return false;
+  try{
+    const draft=JSON.parse(raw);
+    const wanted=Math.min(15, Math.max(12, (draft.players||[]).length || 12));
+    playersEl.innerHTML=''; playersCount=0;
+    for(let i=0;i<wanted;i++) addPlayer(false);
+    document.getElementById('teamName').value=draft.teamName||'';
+    (draft.players||[]).forEach((p,i)=>{
+      ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{const el=document.querySelector(`[name="${k}_${i}"]`); if(el) el.value=p[k]||'';});
+    });
+    for(let i=0;i<wanted;i++){
+      for(const kind of FILE_KINDS){
+        const stored=await idbGet(fileKey(i,kind));
+        const el=document.getElementById(`stored_${kind}_${i}`);
+        if(stored && el) el.textContent='محفوظ مؤقتًا: '+(stored.name || 'image.jpg');
+      }
+    }
+    updateStats(); checkName();
+    document.getElementById('draftInfo').textContent='تم استرجاع البيانات المحفوظة تلقائيًا.';
+    return true;
+  }catch(e){ return false; }
+}
+async function clearDraft(confirmFirst){
+  if(confirmFirst && !confirm('تمسح كل البيانات المحفوظة مؤقتًا؟')) return;
+  localStorage.removeItem(DRAFT_KEY);
+  await idbClear();
+  document.getElementById('draftInfo').textContent='تم مسح البيانات المحفوظة.';
+}
+function bindPlayerEvents(i){
+  const card=document.querySelector(`.player[data-index="${i}"]`);
+  if(!card) return;
+  card.querySelectorAll('input:not([type=file]), select').forEach(el=>el.addEventListener('input', saveDraftSoon));
+  card.querySelectorAll('input[type=file]').forEach(input=>{
+    input.addEventListener('change', async ()=>{
+      const kind=input.dataset.kind;
+      const idx=input.dataset.index;
+      const file=input.files && input.files[0];
+      if(!file) return;
+      const note=document.getElementById(`stored_${kind}_${idx}`);
+      if(note) note.textContent='جاري حفظ الصورة مؤقتًا...';
+      try{
+        const compressed=await compressImage(file);
+        await idbPut(fileKey(idx,kind), compressed);
+        if(note) note.textContent='محفوظ مؤقتًا: '+compressed.name;
+        saveDraftSoon();
+      }catch(e){
+        if(note) note.textContent='تم اختيار الصورة، لكن لم يتم حفظها مؤقتًا.';
+      }
+    });
+  });
+}
+async function getUploadFile(i, kind){
+  const input=document.querySelector(`[name="${kind}_${i}"]`);
+  if(input && input.files && input.files[0]){
+    return await compressImage(input.files[0]);
+  }
+  return await idbGet(fileKey(i,kind));
+}
 
-for(let i=0;i<12;i++) addPlayer();
+async function submitWithTimeout(url, options, timeoutMs=120000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(), timeoutMs);
+  try{return await fetch(url, {...options, signal:controller.signal});}
+  finally{clearTimeout(timer);}
+}
+
+document.getElementById('teamName').addEventListener('input',()=>{clearTimeout(nameTimer);nameTimer=setTimeout(checkName,450);saveDraftSoon();});
+
+(async function init(){
+  const restored=await restoreDraft();
+  if(!restored){ for(let i=0;i<12;i++) addPlayer(false); }
+  draftReady=true;
+  updateStats();
+})();
 
 document.getElementById('registrationForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -138,28 +287,43 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
   if(!nameAvailable){showStatus('اسم المنتخب مستخدم أو غير صالح.', false);return;}
   const genders=[...document.querySelectorAll('select[name^="gender_"]')].map(s=>s.value);
   if(genders.filter(g=>g==='ذكر').length<6 || genders.filter(g=>g==='أنثى').length<6){showStatus('لازم يكون في الفريق على الأقل 6 ذكور و6 إناث.', false);return;}
-  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.textContent='جاري الحفظ...';
+  const btn=document.getElementById('submitBtn');
+  const uploadNote=document.getElementById('uploadingNote');
+  btn.disabled=true; btn.textContent='جاري تجهيز الصور...'; uploadNote.classList.add('show');
   const fd=new FormData();
   fd.append('team_name', document.getElementById('teamName').value.trim());
   const players=[];
-  [...document.querySelectorAll('.player')].forEach((card,idx)=>{
-    const data={client_key:String(idx)};
-    ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{data[k]=card.querySelector(`[name="${k}_${idx}"]`)?.value?.trim()||'';});
-    data.age = normalizeDigits(data.age);
-    data.national_id = normalizeDigits(data.national_id);
-    data.birthdate = normalizeDigits(data.birthdate);
-    ['photo','id_card','university_card'].forEach(k=>{const input=card.querySelector(`[name="${k}_${idx}"]`); if(input?.files?.[0]) fd.append(`${k}_${idx}`, input.files[0]);});
-    players.push(data);
-  });
-  fd.append('players_json', JSON.stringify(players));
   try{
-    const res=await fetch('/api/register-team',{method:'POST',body:fd});
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.detail||'حدث خطأ');
+    for(let idx=0; idx<playersCount; idx++){
+      const card=document.querySelector(`.player[data-index="${idx}"]`);
+      const data={client_key:String(idx)};
+      ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{data[k]=card.querySelector(`[name="${k}_${idx}"]`)?.value?.trim()||'';});
+      data.age = normalizeDigits(data.age);
+      data.national_id = normalizeDigits(data.national_id);
+      data.birthdate = normalizeDigits(data.birthdate);
+      for(const kind of FILE_KINDS){
+        const file=await getUploadFile(idx, kind);
+        if(!file) throw new Error(`صورة ${kind} مطلوبة للاعب رقم ${idx+1}.`);
+        fd.append(`${kind}_${idx}`, file, file.name || `${kind}_${idx}.jpg`);
+      }
+      players.push(data);
+    }
+    fd.append('players_json', JSON.stringify(players));
+    btn.textContent='جاري رفع التسجيل...';
+    const res=await submitWithTimeout('/api/register-team',{method:'POST',body:fd});
+    let data={};
+    try{data=await res.json();}catch(_){data={detail:await res.text()};}
+    if(!res.ok) throw new Error(data.detail||'حدث خطأ في الحفظ');
     showSuccessWithWhatsapp(data);
-    e.target.reset(); playersEl.innerHTML=''; playersCount=0; for(let i=0;i<12;i++) addPlayer(); checkName();
-  }catch(err){showStatus(err.message, false)}
-  finally{btn.disabled=false; btn.textContent='حفظ تسجيل الفريق ✅'}
+    await clearDraft(false);
+    e.target.reset(); playersEl.innerHTML=''; playersCount=0; for(let i=0;i<12;i++) addPlayer(false); updateStats(); checkName();
+  }catch(err){
+    const msg = err.name === 'AbortError' ? 'الاتصال أخذ وقت طويل. غالبًا الصور كبيرة أو النت ضعيف؛ جرّب تاني.' : (err.message || 'فشل الاتصال بالسيرفر. تأكد من النت وجرب مرة أخرى.');
+    showStatus(msg, false);
+  }finally{
+    uploadNote.classList.remove('show');
+    btn.disabled=false; btn.textContent='حفظ تسجيل الفريق ✅';
+  }
 });
 </script>
 </body>
