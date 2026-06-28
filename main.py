@@ -20,6 +20,8 @@ except Exception:
         response = None
 
 app = FastAPI(title="War Zone Control")
+from registration_routes import router as registration_router
+app.include_router(registration_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -1819,5 +1821,4 @@ def save_visibility(payload: VisibilityPayload, request: Request):
     save_data(data)
     return {"status": "success", "message": "تم تحديث إظهار/إخفاء التابات", "visibility": current}
 
-from registration_routes import router as registration_router
-app.include_router(registration_router)
+
