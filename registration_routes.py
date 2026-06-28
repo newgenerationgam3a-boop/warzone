@@ -22,6 +22,8 @@ APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.getenv("REGISTRATION_DATA_DIR", APP_DIR / "registration_data"))
 UPLOAD_DIR = DATA_DIR / "uploads"
 DATA_FILE = DATA_DIR / "registrations.json"
+WHATSAPP_GROUPS_FILE = DATA_DIR / "whatsapp_groups.json"
+MAX_TEAMS = int(os.getenv("REGISTRATION_MAX_TEAMS", "12"))
 ADMIN_PASSWORD = os.getenv("REGISTRATION_ADMIN_PASSWORD", "BeshooWarZone")
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "8"))
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
@@ -49,6 +51,14 @@ def serve_registrations_page():
     return FileResponse(page)
 
 
+@router.get("/whatsapp-groups", include_in_schema=False)
+def serve_whatsapp_groups_page():
+    page = APP_DIR / "whatsapp_groups.html"
+    if not page.exists():
+        raise HTTPException(status_code=404, detail="whatsapp_groups.html غير موجود بجانب main.py")
+    return FileResponse(page)
+
+
 @router.get("/register.html", include_in_schema=False)
 def serve_register_html_alias():
     return serve_register_page()
@@ -57,6 +67,11 @@ def serve_register_html_alias():
 @router.get("/registrations.html", include_in_schema=False)
 def serve_registrations_html_alias():
     return serve_registrations_page()
+
+
+@router.get("/whatsapp-groups.html", include_in_schema=False)
+def serve_whatsapp_groups_html_alias():
+    return serve_whatsapp_groups_page()
 
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
@@ -113,6 +128,94 @@ def save_data(data: Dict[str, Any]) -> None:
     with tmp.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     tmp.replace(DATA_FILE)
+
+
+def default_whatsapp_groups() -> Dict[str, Any]:
+    return {
+        "groups": [
+            {"slot": i, "name": f"جروب واتساب {i}", "link": "", "team_id": None}
+            for i in range(1, MAX_TEAMS + 1)
+        ]
+    }
+
+
+def load_whatsapp_groups() -> Dict[str, Any]:
+    if not WHATSAPP_GROUPS_FILE.exists():
+        data = default_whatsapp_groups()
+        save_whatsapp_groups(data)
+        return data
+    try:
+        with WHATSAPP_GROUPS_FILE.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = default_whatsapp_groups()
+
+    groups = data.get("groups") if isinstance(data, dict) else None
+    if not isinstance(groups, list):
+        groups = []
+
+    by_slot = {}
+    for g in groups:
+        try:
+            slot = int(g.get("slot"))
+        except Exception:
+            continue
+        if 1 <= slot <= MAX_TEAMS:
+            by_slot[slot] = {
+                "slot": slot,
+                "name": str(g.get("name") or f"جروب واتساب {slot}"),
+                "link": str(g.get("link") or "").strip(),
+                "team_id": g.get("team_id") or None,
+            }
+
+    fixed = []
+    for i in range(1, MAX_TEAMS + 1):
+        fixed.append(by_slot.get(i) or {"slot": i, "name": f"جروب واتساب {i}", "link": "", "team_id": None})
+    return {"groups": fixed}
+
+
+def save_whatsapp_groups(data: Dict[str, Any]) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = WHATSAPP_GROUPS_FILE.with_suffix(".json.tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    tmp.replace(WHATSAPP_GROUPS_FILE)
+
+
+def group_for_team(team_id: str) -> Optional[Dict[str, Any]]:
+    for group in load_whatsapp_groups().get("groups", []):
+        if group.get("team_id") == team_id:
+            return group
+    return None
+
+
+def release_whatsapp_group(team_id: str) -> None:
+    groups_data = load_whatsapp_groups()
+    changed = False
+    for group in groups_data.get("groups", []):
+        if group.get("team_id") == team_id:
+            group["team_id"] = None
+            changed = True
+    if changed:
+        save_whatsapp_groups(groups_data)
+
+
+def assign_whatsapp_group(team_id: str) -> Dict[str, Any]:
+    groups_data = load_whatsapp_groups()
+
+    # لو الفريق كان متسجل قبل كده، رجّع نفس الجروب.
+    for group in groups_data.get("groups", []):
+        if group.get("team_id") == team_id:
+            return group
+
+    # لازم يكون في لينك محفوظ وغير مت assigned.
+    for group in groups_data.get("groups", []):
+        if not group.get("team_id") and str(group.get("link") or "").strip():
+            group["team_id"] = team_id
+            save_whatsapp_groups(groups_data)
+            return group
+
+    raise HTTPException(status_code=400, detail="لا يوجد لينك جروب واتساب متاح. ادخل 12 لينك من صفحة إدارة جروبات الواتساب أولًا.")
 
 
 def normalize_team_name(name: str) -> str:
@@ -288,6 +391,43 @@ async def build_team_from_form(request: Request, existing: Optional[Dict[str, An
 
 
 
+@router.get("/api/whatsapp-groups")
+def get_whatsapp_groups(request: Request):
+    require_admin(request)
+    data = load_data()
+    teams_by_id = {t.get("id"): t.get("team_name") for t in data.get("teams", [])}
+    groups = []
+    for g in load_whatsapp_groups().get("groups", []):
+        item = dict(g)
+        item["assigned_team_name"] = teams_by_id.get(g.get("team_id"))
+        groups.append(item)
+    return {"groups": groups, "max_teams": MAX_TEAMS}
+
+
+@router.post("/api/whatsapp-groups")
+async def save_whatsapp_groups_api(request: Request):
+    require_admin(request)
+    payload = await request.json()
+    incoming = payload.get("groups") if isinstance(payload, dict) else None
+    if not isinstance(incoming, list):
+        raise HTTPException(status_code=400, detail="صيغة لينكات الواتساب غير صحيحة.")
+
+    existing = load_whatsapp_groups()
+    existing_by_slot = {int(g.get("slot")): g for g in existing.get("groups", [])}
+    final = []
+    for i in range(1, MAX_TEAMS + 1):
+        old = existing_by_slot.get(i, {"slot": i, "name": f"جروب واتساب {i}", "link": "", "team_id": None})
+        sent = next((g for g in incoming if str(g.get("slot")) == str(i)), {})
+        link = str(sent.get("link", old.get("link", ""))).strip()
+        name = str(sent.get("name", old.get("name") or f"جروب واتساب {i}")).strip() or f"جروب واتساب {i}"
+        if link and not re.match(r"^https?://", link):
+            raise HTTPException(status_code=400, detail=f"لينك الجروب رقم {i} لازم يبدأ بـ http أو https.")
+        final.append({"slot": i, "name": name, "link": link, "team_id": old.get("team_id") or None})
+
+    save_whatsapp_groups({"groups": final})
+    return {"status": "success", "groups": final}
+
+
 @router.get("/api/team-name-available")
 def team_name_available(name: str):
     data = load_data()
@@ -303,6 +443,9 @@ def team_name_available(name: str):
 @router.post("/api/register-team")
 async def register_team(request: Request):
     data = load_data()
+    if len(data.get("teams", [])) >= MAX_TEAMS:
+        raise HTTPException(status_code=400, detail=f"تم اكتمال عدد الفرق المسموح به: {MAX_TEAMS} فريق.")
+
     team = await build_team_from_form(request)
     ensure_team_name_unique(data, team["team_name"])
 
@@ -313,19 +456,37 @@ async def register_team(request: Request):
             delete_team_files(team["id"])
             raise HTTPException(status_code=409, detail=f"الرقم القومي {p.get('national_id')} مسجل قبل كده في فريق آخر.")
 
+    try:
+        whatsapp_group = assign_whatsapp_group(team["id"])
+    except Exception:
+        delete_team_files(team["id"])
+        raise
+
+    team["whatsapp_group_slot"] = whatsapp_group.get("slot")
     data["teams"].append(team)
     save_data(data)
-    return {"status": "success", "team_id": team["id"], "team_name": team["team_name"]}
+    return {
+        "status": "success",
+        "team_id": team["id"],
+        "team_name": team["team_name"],
+        "whatsapp_group": {
+            "slot": whatsapp_group.get("slot"),
+            "name": whatsapp_group.get("name"),
+            "link": whatsapp_group.get("link"),
+        },
+    }
 
 
 @router.get("/api/registrations")
 def list_registrations(request: Request):
     require_admin(request)
     data = load_data()
+    groups_by_team = {g.get("team_id"): g for g in load_whatsapp_groups().get("groups", []) if g.get("team_id")}
     teams = []
     for team in data.get("teams", []):
         males = sum(1 for p in team.get("players", []) if p.get("gender") == "ذكر")
         females = sum(1 for p in team.get("players", []) if p.get("gender") == "أنثى")
+        whatsapp = groups_by_team.get(team.get("id"))
         teams.append({
             "id": team.get("id"),
             "team_name": team.get("team_name"),
@@ -334,8 +495,13 @@ def list_registrations(request: Request):
             "players_count": len(team.get("players", [])),
             "males": males,
             "females": females,
+            "whatsapp_group": {
+                "slot": whatsapp.get("slot"),
+                "name": whatsapp.get("name"),
+                "link": whatsapp.get("link"),
+            } if whatsapp else None,
         })
-    return {"teams": teams}
+    return {"teams": teams, "max_teams": MAX_TEAMS}
 
 
 @router.get("/api/registrations/{team_id}")
@@ -344,7 +510,14 @@ def get_registration(team_id: str, request: Request):
     data = load_data()
     for team in data.get("teams", []):
         if team.get("id") == team_id:
-            return public_team(team, request=request)
+            item = public_team(team, request=request)
+            whatsapp = group_for_team(team_id)
+            item["whatsapp_group"] = {
+                "slot": whatsapp.get("slot"),
+                "name": whatsapp.get("name"),
+                "link": whatsapp.get("link"),
+            } if whatsapp else None
+            return item
     raise HTTPException(status_code=404, detail="الفريق غير موجود.")
 
 
@@ -378,6 +551,7 @@ def delete_registration(team_id: str, request: Request):
     if len(data["teams"]) == before:
         raise HTTPException(status_code=404, detail="الفريق غير موجود.")
     delete_team_files(team_id)
+    release_whatsapp_group(team_id)
     save_data(data)
     return {"status": "success"}
 
