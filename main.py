@@ -1818,3 +1818,6 @@ def save_visibility(payload: VisibilityPayload, request: Request):
     data["visibility"] = current
     save_data(data)
     return {"status": "success", "message": "تم تحديث إظهار/إخفاء التابات", "visibility": current}
+
+from registration_routes import router as registration_router
+app.include_router(registration_router)
