@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة جروبات واتساب | War Zone</title>
+  <style>
+    :root{--bg:#07111f;--card:#101d33;--card2:#14233d;--line:#263955;--text:#f8fafc;--muted:#94a3b8;--cyan:#38bdf8;--green:#34d399;--red:#fb7185;--yellow:#f59e0b}
+    *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Tahoma,sans-serif;background:radial-gradient(circle at top right,#12345c 0,#07111f 38%,#050b16 100%);color:var(--text);min-height:100vh;padding:24px}
+    .wrap{max-width:1150px;margin:0 auto}.card{background:rgba(16,29,51,.92);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 15px 40px rgba(0,0,0,.25);margin-bottom:18px}.header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:16px 0 20px}.header h1{margin:0;color:var(--cyan)}.muted{color:var(--muted);line-height:1.8} input{width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:#0b1628;color:var(--text);font-size:1rem} button,.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#0284c7,#0369a1);color:white;text-decoration:none;display:inline-block}button:hover,.btn:hover{filter:brightness(1.08)}.green{background:linear-gradient(135deg,#059669,#10b981)}.secondary{background:#334155}.danger{background:#be123c}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.login{max-width:460px;margin:80px auto}.status{display:none;margin:12px 0;border-radius:14px;padding:12px;font-weight:800;text-align:center}.success{display:block;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:var(--green)}.error{display:block;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.35);color:var(--red)}
+    .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}.group{background:rgba(20,35,61,.72);border:1px solid var(--line);border-radius:18px;padding:16px}.group-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:rgba(56,189,248,.12);color:var(--cyan);font-weight:900}.assigned{color:var(--green);font-weight:800}.empty{color:var(--yellow);font-weight:800}.small{font-size:.9rem}.field{margin:10px 0}.field label{display:block;color:var(--muted);margin-bottom:6px;font-weight:700}
+    @media(max-width:700px){body{padding:12px}.header{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions>*{flex:1;text-align:center}.groups{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section id="loginBox" class="login card">
+    <h1 style="text-align:center;color:var(--cyan)">🔐 إدارة جروبات واتساب</h1>
+    <p class="muted" style="text-align:center">اكتب باسورد الأدمن لتعديل لينكات الجروبات.</p>
+    <input id="password" type="password" placeholder="Password" />
+    <button style="width:100%;margin-top:12px" onclick="login()">دخول</button>
+    <div id="loginStatus" class="status"></div>
+  </section>
+
+  <section id="app" style="display:none">
+    <div class="header">
+      <div><h1>لينكات جروبات الواتساب</h1><p class="muted">حط 12 لينك. كل فريق بعد التسجيل هياخد أول جروب متاح تلقائيًا.</p></div>
+      <div class="actions"><a class="btn secondary" href="/registrations">بيانات التسجيلات</a><a class="btn secondary" href="/register" target="_blank">صفحة التسجيل</a><button class="green" onclick="saveGroups()">حفظ اللينكات ✅</button><button class="secondary" onclick="logout()">خروج</button></div>
+    </div>
+    <div class="card">
+      <p class="muted">مهم: لو اللينكات مش متدخلة، التسجيل هيتوقف عشان لازم يظهر لكل فريق لينك جروب واتساب بعد التسجيل.</p>
+      <div id="mainStatus" class="status"></div>
+      <div id="groups" class="groups"></div>
+    </div>
+  </section>
+</div>
+<script>
+let PASS=localStorage.getItem('reg_admin_pass')||'';
+let groups=[];
+function status(id,msg,ok){const el=document.getElementById(id);el.textContent=msg;el.className='status '+(ok?'success':'error');}
+function headers(extra={}){return {'X-Admin-Password':PASS,'Content-Type':'application/json',...extra};}
+async function api(url,opts={}){opts.headers={...(opts.headers||{}),...headers(opts.headers||{})};const res=await fetch(url,opts);let data={};try{data=await res.json()}catch(e){}if(!res.ok)throw new Error(data.detail||'حدث خطأ');return data;}
+function login(){PASS=document.getElementById('password').value;localStorage.setItem('reg_admin_pass',PASS);loadGroups().then(()=>{document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='block';}).catch(e=>status('loginStatus',e.message,false));}
+function logout(){localStorage.removeItem('reg_admin_pass');location.reload();}
+async function loadGroups(){const data=await api('/api/whatsapp-groups',{headers:{}});groups=data.groups||[];renderGroups();}
+function escapeHtml(s){return String(s||'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function renderGroups(){document.getElementById('groups').innerHTML=groups.map(g=>`<div class="group">
+  <div class="group-head"><span class="badge">جروب ${g.slot}</span><span class="${g.assigned_team_name?'assigned':'empty'}">${g.assigned_team_name?('محجوز لـ '+escapeHtml(g.assigned_team_name)):'متاح'}</span></div>
+  <div class="field"><label>اسم الجروب</label><input data-slot="${g.slot}" data-key="name" value="${escapeHtml(g.name||'')}"></div>
+  <div class="field"><label>لينك واتساب</label><input dir="ltr" data-slot="${g.slot}" data-key="link" placeholder="https://chat.whatsapp.com/..." value="${escapeHtml(g.link||'')}"></div>
+  ${g.link?`<a class="small" href="${escapeHtml(g.link)}" target="_blank" style="color:var(--cyan)">فتح الجروب</a>`:''}
+</div>`).join('');}
+async function saveGroups(){
+  const next=groups.map(g=>({...g}));
+  document.querySelectorAll('[data-slot]').forEach(inp=>{const slot=Number(inp.dataset.slot);const key=inp.dataset.key;const item=next.find(g=>Number(g.slot)===slot);if(item)item[key]=inp.value.trim();});
+  try{const data=await api('/api/whatsapp-groups',{method:'POST',body:JSON.stringify({groups:next})});groups=data.groups||next;renderGroups();status('mainStatus','تم حفظ لينكات جروبات الواتساب ✅',true);}catch(e){status('mainStatus',e.message,false)}
+}
+if(PASS){document.getElementById('password').value=PASS;login();}
+</script>
+</body>
+</html>
