@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import uuid
+import base64
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -28,10 +29,22 @@ ADMIN_PASSWORD = os.getenv("REGISTRATION_ADMIN_PASSWORD", "BeshooWarZone")
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "8"))
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
+# Optional Google Drive storage for uploaded player files.
+# If GOOGLE_DRIVE_FOLDER_ID and service-account JSON are configured, images are uploaded to Drive.
+# Otherwise the old local/Railway-volume storage remains as a safe fallback.
+GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "").strip()
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+GOOGLE_SERVICE_ACCOUNT_JSON_B64 = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON_B64", "").strip()
+GOOGLE_DRIVE_DELETE_ON_TEAM_DELETE = os.getenv("GOOGLE_DRIVE_DELETE_ON_TEAM_DELETE", "true").lower() in {"1", "true", "yes", "on"}
+USE_GOOGLE_DRIVE = bool(GOOGLE_DRIVE_FOLDER_ID and (GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_JSON_B64))
+
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter()
+
+_drive_service_cache = None
+_folder_cache: Dict[str, str] = {}
 
 
 # ----- HTML pages for the registration addon -----
@@ -128,6 +141,149 @@ def save_data(data: Dict[str, Any]) -> None:
     with tmp.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     tmp.replace(DATA_FILE)
+
+
+def _google_drive_credentials_info() -> Optional[Dict[str, Any]]:
+    if GOOGLE_SERVICE_ACCOUNT_JSON_B64:
+        try:
+            decoded = base64.b64decode(GOOGLE_SERVICE_ACCOUNT_JSON_B64).decode("utf-8")
+            return json.loads(decoded)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Google Drive service account base64 غير صحيح: {exc}")
+    if GOOGLE_SERVICE_ACCOUNT_JSON:
+        try:
+            return json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Google Drive service account JSON غير صحيح: {exc}")
+    return None
+
+
+def get_drive_service():
+    global _drive_service_cache
+    if _drive_service_cache is not None:
+        return _drive_service_cache
+    info = _google_drive_credentials_info()
+    if not info:
+        return None
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="مكتبات Google Drive غير موجودة. ضيف google-api-python-client و google-auth في requirements.txt.",
+        )
+    creds = service_account.Credentials.from_service_account_info(
+        info, scopes=["https://www.googleapis.com/auth/drive"]
+    )
+    _drive_service_cache = build("drive", "v3", credentials=creds, cache_discovery=False)
+    return _drive_service_cache
+
+
+def drive_escape(value: str) -> str:
+    return str(value).replace("\\", "\\\\").replace("'", "\\'")
+
+
+def drive_folder_name(value: str) -> str:
+    value = re.sub(r"[\r\n]+", " ", str(value or "")).strip()
+    value = re.sub(r"\s+", " ", value)
+    return value[:120] or "Folder"
+
+
+def drive_find_or_create_folder(name: str, parent_id: str) -> str:
+    service = get_drive_service()
+    if not service:
+        raise HTTPException(status_code=500, detail="Google Drive غير مفعل على السيرفر.")
+    name = drive_folder_name(name)
+    cache_key = f"{parent_id}:{name}"
+    if cache_key in _folder_cache:
+        return _folder_cache[cache_key]
+    q = (
+        "mimeType='application/vnd.google-apps.folder' "
+        f"and name='{drive_escape(name)}' "
+        f"and '{drive_escape(parent_id)}' in parents "
+        "and trashed=false"
+    )
+    result = service.files().list(q=q, fields="files(id,name)", pageSize=1, supportsAllDrives=True).execute()
+    files = result.get("files", [])
+    if files:
+        folder_id = files[0]["id"]
+    else:
+        metadata = {
+            "name": name,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [parent_id],
+        }
+        created = service.files().create(
+            body=metadata, fields="id", supportsAllDrives=True
+        ).execute()
+        folder_id = created["id"]
+    _folder_cache[cache_key] = folder_id
+    return folder_id
+
+
+def drive_upload_bytes(data: bytes, filename: str, mime_type: str, parent_id: str) -> Dict[str, Any]:
+    service = get_drive_service()
+    if not service:
+        raise HTTPException(status_code=500, detail="Google Drive غير مفعل على السيرفر.")
+    try:
+        from googleapiclient.http import MediaIoBaseUpload
+    except Exception:
+        raise HTTPException(status_code=500, detail="مكتبات Google Drive غير موجودة في requirements.txt.")
+    media = MediaIoBaseUpload(BytesIO(data), mimetype=mime_type, resumable=False)
+    metadata = {"name": filename, "parents": [parent_id]}
+    created = service.files().create(
+        body=metadata,
+        media_body=media,
+        fields="id,name,mimeType,webViewLink,webContentLink",
+        supportsAllDrives=True,
+    ).execute()
+    return {
+        "storage": "google_drive",
+        "file_id": created.get("id"),
+        "name": created.get("name"),
+        "mime_type": created.get("mimeType") or mime_type,
+        "web_view_link": created.get("webViewLink"),
+    }
+
+
+def drive_download_bytes(file_id: str) -> bytes:
+    service = get_drive_service()
+    if not service:
+        raise HTTPException(status_code=500, detail="Google Drive غير مفعل على السيرفر.")
+    try:
+        from googleapiclient.http import MediaIoBaseDownload
+    except Exception:
+        raise HTTPException(status_code=500, detail="مكتبات Google Drive غير موجودة في requirements.txt.")
+    request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
+    fh = BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    return fh.getvalue()
+
+
+def drive_trash_file(file_id: str) -> None:
+    if not GOOGLE_DRIVE_DELETE_ON_TEAM_DELETE:
+        return
+    service = get_drive_service()
+    if not service or not file_id:
+        return
+    try:
+        service.files().update(fileId=file_id, body={"trashed": True}, supportsAllDrives=True).execute()
+    except Exception:
+        pass
+
+
+def stored_file_is_drive(value: Any) -> bool:
+    return isinstance(value, dict) and value.get("storage") == "google_drive" and value.get("file_id")
+
+
+def stored_file_relative_path(value: Any) -> Optional[str]:
+    if isinstance(value, str) and value:
+        return value
+    return None
 
 
 def default_whatsapp_groups() -> Dict[str, Any]:
@@ -307,7 +463,14 @@ def ensure_team_name_unique(data: Dict[str, Any], team_name: str, exclude_team_i
             raise HTTPException(status_code=409, detail="اسم المنتخب مستخدم قبل كده، اختار اسم تاني.")
 
 
-async def save_uploaded_file(upload: StarletteUploadFile, team_id: str, player_id: str, kind: str) -> str:
+async def save_uploaded_file(
+    upload: StarletteUploadFile,
+    team_id: str,
+    player_id: str,
+    kind: str,
+    team_name: str = "",
+    player_name: str = "",
+) -> Any:
     if not upload or not getattr(upload, "filename", ""):
         raise HTTPException(status_code=400, detail=f"ملف {kind} مطلوب.")
 
@@ -320,16 +483,32 @@ async def save_uploaded_file(upload: StarletteUploadFile, team_id: str, player_i
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail=f"حجم الصورة لا يزيد عن {MAX_UPLOAD_MB}MB.")
 
+    filename = f"{kind}_{slugify(player_name or player_id)}_{uuid.uuid4().hex[:10]}{ext}"
+
+    if USE_GOOGLE_DRIVE:
+        team_folder = drive_find_or_create_folder(
+            f"{team_name or 'Team'} - {team_id[:8]}", GOOGLE_DRIVE_FOLDER_ID
+        )
+        player_folder = drive_find_or_create_folder(
+            f"{player_name or 'Player'} - {player_id[:8]}", team_folder
+        )
+        return drive_upload_bytes(data, filename, content_type, player_folder)
+
     folder = UPLOAD_DIR / team_id / player_id
     folder.mkdir(parents=True, exist_ok=True)
-    filename = f"{kind}_{uuid.uuid4().hex}{ext}"
     path = folder / filename
     with path.open("wb") as f:
         f.write(data)
     return str(path.relative_to(DATA_DIR))
 
 
-def delete_team_files(team_id: str) -> None:
+def delete_team_files(team_id: str, team: Optional[Dict[str, Any]] = None) -> None:
+    if team and USE_GOOGLE_DRIVE:
+        for player in team.get("players", []):
+            for stored in player.get("files", {}).values():
+                if stored_file_is_drive(stored):
+                    drive_trash_file(stored.get("file_id"))
+
     folder = UPLOAD_DIR / team_id
     if folder.exists():
         shutil.rmtree(folder, ignore_errors=True)
@@ -373,7 +552,7 @@ async def build_team_from_form(request: Request, existing: Optional[Dict[str, An
         for kind in FILE_FIELDS:
             upload = form.get(f"{kind}_{client_key}")
             if isinstance(upload, StarletteUploadFile) and upload.filename:
-                player["files"][kind] = await save_uploaded_file(upload, team_id, player_id, kind)
+                player["files"][kind] = await save_uploaded_file(upload, team_id, player_id, kind, team_name=team_name, player_name=player["name"])
             elif not player["files"].get(kind):
                 raise HTTPException(status_code=400, detail=f"صورة {kind} مطلوبة للاعب رقم {idx + 1}.")
 
@@ -453,13 +632,13 @@ async def register_team(request: Request):
     existing_ids = {p.get("national_id") for t in data.get("teams", []) for p in t.get("players", [])}
     for p in team["players"]:
         if p.get("national_id") in existing_ids:
-            delete_team_files(team["id"])
+            delete_team_files(team["id"], team)
             raise HTTPException(status_code=409, detail=f"الرقم القومي {p.get('national_id')} مسجل قبل كده في فريق آخر.")
 
     try:
         whatsapp_group = assign_whatsapp_group(team["id"])
     except Exception:
-        delete_team_files(team["id"])
+        delete_team_files(team["id"], team)
         raise
 
     team["whatsapp_group_slot"] = whatsapp_group.get("slot")
@@ -502,78 +681,6 @@ def list_registrations(request: Request):
             } if whatsapp else None,
         })
     return {"teams": teams, "max_teams": MAX_TEAMS}
-
-
-@router.get("/api/registrations/{team_id}")
-def get_registration(team_id: str, request: Request):
-    require_admin(request)
-    data = load_data()
-    for team in data.get("teams", []):
-        if team.get("id") == team_id:
-            item = public_team(team, request=request)
-            whatsapp = group_for_team(team_id)
-            item["whatsapp_group"] = {
-                "slot": whatsapp.get("slot"),
-                "name": whatsapp.get("name"),
-                "link": whatsapp.get("link"),
-            } if whatsapp else None
-            return item
-    raise HTTPException(status_code=404, detail="الفريق غير موجود.")
-
-
-@router.put("/api/registrations/{team_id}")
-async def update_registration(team_id: str, request: Request):
-    require_admin(request)
-    data = load_data()
-    for idx, old_team in enumerate(data.get("teams", [])):
-        if old_team.get("id") == team_id:
-            updated = await build_team_from_form(request, existing=old_team)
-            ensure_team_name_unique(data, updated["team_name"], exclude_team_id=team_id)
-
-            # Check national IDs across other teams.
-            other_ids = {p.get("national_id") for t in data.get("teams", []) if t.get("id") != team_id for p in t.get("players", [])}
-            for p in updated["players"]:
-                if p.get("national_id") in other_ids:
-                    raise HTTPException(status_code=409, detail=f"الرقم القومي {p.get('national_id')} مسجل في فريق آخر.")
-
-            data["teams"][idx] = updated
-            save_data(data)
-            return {"status": "success", "team_id": team_id}
-    raise HTTPException(status_code=404, detail="الفريق غير موجود.")
-
-
-@router.delete("/api/registrations/{team_id}")
-def delete_registration(team_id: str, request: Request):
-    require_admin(request)
-    data = load_data()
-    before = len(data.get("teams", []))
-    data["teams"] = [t for t in data.get("teams", []) if t.get("id") != team_id]
-    if len(data["teams"]) == before:
-        raise HTTPException(status_code=404, detail="الفريق غير موجود.")
-    delete_team_files(team_id)
-    release_whatsapp_group(team_id)
-    save_data(data)
-    return {"status": "success"}
-
-
-@router.get("/api/registration-file/{team_id}/{player_id}/{kind}")
-def get_registration_file(team_id: str, player_id: str, kind: str, request: Request):
-    require_admin(request)
-    if kind not in FILE_FIELDS:
-        raise HTTPException(status_code=404, detail="نوع الملف غير صحيح.")
-    data = load_data()
-    for team in data.get("teams", []):
-        if team.get("id") == team_id:
-            for player in team.get("players", []):
-                if player.get("id") == player_id:
-                    rel = player.get("files", {}).get(kind)
-                    if not rel:
-                        raise HTTPException(status_code=404, detail="الملف غير موجود.")
-                    path = DATA_DIR / rel
-                    if not path.exists():
-                        raise HTTPException(status_code=404, detail="الملف غير موجود على السيرفر.")
-                    return FileResponse(path)
-    raise HTTPException(status_code=404, detail="الملف غير موجود.")
 
 
 @router.get("/api/registrations/export")
@@ -647,3 +754,89 @@ def export_registrations(request: Request):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/api/registrations/{team_id}")
+def get_registration(team_id: str, request: Request):
+    require_admin(request)
+    data = load_data()
+    for team in data.get("teams", []):
+        if team.get("id") == team_id:
+            item = public_team(team, request=request)
+            whatsapp = group_for_team(team_id)
+            item["whatsapp_group"] = {
+                "slot": whatsapp.get("slot"),
+                "name": whatsapp.get("name"),
+                "link": whatsapp.get("link"),
+            } if whatsapp else None
+            return item
+    raise HTTPException(status_code=404, detail="الفريق غير موجود.")
+
+
+@router.put("/api/registrations/{team_id}")
+async def update_registration(team_id: str, request: Request):
+    require_admin(request)
+    data = load_data()
+    for idx, old_team in enumerate(data.get("teams", [])):
+        if old_team.get("id") == team_id:
+            updated = await build_team_from_form(request, existing=old_team)
+            ensure_team_name_unique(data, updated["team_name"], exclude_team_id=team_id)
+
+            # Check national IDs across other teams.
+            other_ids = {p.get("national_id") for t in data.get("teams", []) if t.get("id") != team_id for p in t.get("players", [])}
+            for p in updated["players"]:
+                if p.get("national_id") in other_ids:
+                    raise HTTPException(status_code=409, detail=f"الرقم القومي {p.get('national_id')} مسجل في فريق آخر.")
+
+            data["teams"][idx] = updated
+            save_data(data)
+            return {"status": "success", "team_id": team_id}
+    raise HTTPException(status_code=404, detail="الفريق غير موجود.")
+
+
+@router.delete("/api/registrations/{team_id}")
+def delete_registration(team_id: str, request: Request):
+    require_admin(request)
+    data = load_data()
+    before = len(data.get("teams", []))
+    data["teams"] = [t for t in data.get("teams", []) if t.get("id") != team_id]
+    if len(data["teams"]) == before:
+        raise HTTPException(status_code=404, detail="الفريق غير موجود.")
+    delete_team_files(team_id, next((t for t in load_data().get("teams", []) if t.get("id") == team_id), None))
+    release_whatsapp_group(team_id)
+    save_data(data)
+    return {"status": "success"}
+
+
+@router.get("/api/registration-file/{team_id}/{player_id}/{kind}")
+def get_registration_file(team_id: str, player_id: str, kind: str, request: Request):
+    require_admin(request)
+    if kind not in FILE_FIELDS:
+        raise HTTPException(status_code=404, detail="نوع الملف غير صحيح.")
+    data = load_data()
+    for team in data.get("teams", []):
+        if team.get("id") == team_id:
+            for player in team.get("players", []):
+                if player.get("id") == player_id:
+                    rel = player.get("files", {}).get(kind)
+                    if not rel:
+                        raise HTTPException(status_code=404, detail="الملف غير موجود.")
+                    if stored_file_is_drive(rel):
+                        try:
+                            file_bytes = drive_download_bytes(rel.get("file_id"))
+                        except Exception:
+                            raise HTTPException(status_code=404, detail="الملف غير موجود على Google Drive أو لا توجد صلاحية للوصول له.")
+                        return StreamingResponse(
+                            BytesIO(file_bytes),
+                            media_type=rel.get("mime_type") or "application/octet-stream",
+                            headers={"Content-Disposition": f"inline; filename={rel.get('name') or kind}"},
+                        )
+
+                    local_rel = stored_file_relative_path(rel)
+                    if not local_rel:
+                        raise HTTPException(status_code=404, detail="الملف غير موجود.")
+                    path = DATA_DIR / local_rel
+                    if not path.exists():
+                        raise HTTPException(status_code=404, detail="الملف غير موجود على السيرفر.")
+                    return FileResponse(path)
+    raise HTTPException(status_code=404, detail="الملف غير موجود.")
