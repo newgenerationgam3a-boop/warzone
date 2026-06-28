@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل فريق | War Zone</title>
+  <style>
+    :root{--bg:#07111f;--card:#101d33;--card2:#14233d;--line:#263955;--text:#f8fafc;--muted:#94a3b8;--cyan:#38bdf8;--blue:#0284c7;--green:#34d399;--red:#fb7185;--yellow:#f59e0b}
+    *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Tahoma,sans-serif;background:radial-gradient(circle at top right,#12345c 0,#07111f 38%,#050b16 100%);color:var(--text);min-height:100vh;padding:24px}
+    .wrap{max-width:1150px;margin:0 auto}.hero{text-align:center;margin:20px 0 28px}.hero h1{margin:0;font-size:2.2rem;color:var(--cyan)}.hero p{color:var(--muted);font-size:1rem;line-height:1.8}.card{background:rgba(16,29,51,.88);border:1px solid rgba(148,163,184,.2);border-radius:22px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:7px}label{color:var(--muted);font-size:.92rem}input,select,textarea{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:#0b1628;color:var(--text);font-size:1rem}input[type=file]{padding:10px;background:#07111f}input:focus,select:focus{outline:0;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(56,189,248,.12)}
+    .team-row{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;align-items:end}.availability{font-weight:700;font-size:.92rem}.ok{color:var(--green)}.bad{color:var(--red)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.stat{background:#0b1628;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}.stat b{display:block;font-size:1.5rem;color:var(--cyan)}.stat span{color:var(--muted);font-size:.85rem}
+    .players-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0 12px}.actions{display:flex;gap:10px;flex-wrap:wrap}button{border:0;border-radius:12px;padding:12px 18px;color:white;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#0284c7,#0369a1);box-shadow:0 10px 20px rgba(2,132,199,.18)}button.secondary{background:#1f2e46}button.danger{background:#be123c}button.green{background:linear-gradient(135deg,#059669,#047857)}button:disabled{opacity:.55;cursor:not-allowed}.player{background:rgba(11,22,40,.92);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}.player-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.player-title h3{margin:0;color:var(--yellow)}.remove{background:#7f1d1d;padding:8px 12px}.player-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.file-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:13px}
+    .note{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);color:#fde68a;padding:14px;border-radius:14px;line-height:1.7;margin:16px 0}.status{display:none;margin-top:16px;border-radius:14px;padding:14px;font-weight:800;text-align:center}.success{display:block;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:var(--green)}.error{display:block;background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.35);color:var(--red)}.footer{text-align:center;color:var(--muted);font-size:.85rem;margin:20px 0}
+    @media(max-width:850px){body{padding:12px}.grid,.team-row,.player-grid,.file-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.players-head{align-items:flex-start;flex-direction:column}.hero h1{font-size:1.6rem}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <h1>🏆 تسجيل فريق War Zone</h1>
+    <p>سجل بيانات المنتخب بالكامل. الفريق من ١٢ إلى ١٥ فرد، ولازم يكون فيه على الأقل ٦ ذكور و٦ إناث.</p>
+  </section>
+
+  <form id="registrationForm" class="card">
+    <div class="team-row">
+      <div class="field">
+        <label>اسم المنتخب</label>
+        <input id="teamName" name="team_name" required placeholder="اكتب اسم منتخب نادر ومميز" />
+      </div>
+      <div class="availability" id="availability">اكتب الاسم للتحقق من توفره</div>
+    </div>
+
+    <div class="note">كل لاعب مطلوب له: الاسم، السن، تاريخ الميلاد، الرقم القومي، الجامعة، الكلية، النوع، صورة شخصية، صورة البطاقة، وصورة كارنيه الجامعة.</div>
+
+    <div class="stats">
+      <div class="stat"><b id="countAll">12</b><span>عدد اللاعبين</span></div>
+      <div class="stat"><b id="countMale">0</b><span>ذكور</span></div>
+      <div class="stat"><b id="countFemale">0</b><span>إناث</span></div>
+      <div class="stat"><b id="countNeeded">6 / 6</b><span>الحد الأدنى</span></div>
+    </div>
+
+    <div class="players-head">
+      <h2 style="margin:0;color:var(--cyan)">بيانات اللاعبين</h2>
+      <div class="actions">
+        <button type="button" class="secondary" onclick="addPlayer()">+ إضافة لاعب</button>
+        <button type="button" class="danger" onclick="removeLastPlayer()">- حذف آخر لاعب</button>
+      </div>
+    </div>
+
+    <div id="players"></div>
+
+    <div class="actions" style="margin-top:18px;justify-content:center">
+      <button id="submitBtn" type="submit" class="green">حفظ تسجيل الفريق ✅</button>
+    </div>
+    <div id="status" class="status"></div>
+  </form>
+  <div class="footer">War Zone Registration System</div>
+</div>
+
+<script>
+let playersCount = 0;
+let nameTimer = null;
+let nameAvailable = false;
+const playersEl = document.getElementById('players');
+
+function playerTemplate(i){
+  return `<div class="player" data-index="${i}">
+    <div class="player-title"><h3>لاعب رقم ${i+1}</h3>${i>=12?'<button type="button" class="remove" onclick="removePlayer('+i+')">حذف</button>':''}</div>
+    <div class="player-grid">
+      <div class="field"><label>اسم اللاعب</label><input required name="name_${i}" placeholder="الاسم بالكامل"></div>
+      <div class="field"><label>السن</label><input required name="age_${i}" type="number" min="1" max="100"></div>
+      <div class="field"><label>تاريخ الميلاد</label><input required name="birthdate_${i}" type="date"></div>
+      <div class="field"><label>الرقم القومي</label><input required name="national_id_${i}" inputmode="numeric" maxlength="14" placeholder="14 رقم"></div>
+      <div class="field"><label>الجامعة</label><input required name="university_${i}" placeholder="اسم الجامعة"></div>
+      <div class="field"><label>الكلية</label><input required name="college_${i}" placeholder="اسم الكلية"></div>
+      <div class="field"><label>النوع</label><select required name="gender_${i}" onchange="updateStats()"><option value="">اختار</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
+    </div>
+    <div class="file-grid">
+      <div class="field"><label>صورة شخصية</label><input required type="file" name="photo_${i}" accept="image/png,image/jpeg,image/webp"></div>
+      <div class="field"><label>صورة البطاقة</label><input required type="file" name="id_card_${i}" accept="image/png,image/jpeg,image/webp"></div>
+      <div class="field"><label>صورة كارنيه الجامعة</label><input required type="file" name="university_card_${i}" accept="image/png,image/jpeg,image/webp"></div>
+    </div>
+  </div>`;
+}
+function rerenderNumbers(){[...document.querySelectorAll('.player')].forEach((card,idx)=>{card.dataset.index=idx;card.querySelector('h3').textContent='لاعب رقم '+(idx+1);});}
+function addPlayer(){ if(playersCount>=15){showStatus('الفريق لا يزيد عن 15 فرد.', false);return;} playersEl.insertAdjacentHTML('beforeend', playerTemplate(playersCount)); playersCount++; updateStats(); }
+function removePlayer(i){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} const cards=[...document.querySelectorAll('.player')]; cards[i]?.remove(); playersCount--; rerenderNumbers(); updateStats(); }
+function removeLastPlayer(){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} playersEl.lastElementChild.remove(); playersCount--; updateStats(); }
+function updateStats(){
+  const genders=[...document.querySelectorAll('select[name^="gender_"]')].map(s=>s.value);
+  const male=genders.filter(g=>g==='ذكر').length;
+  const female=genders.filter(g=>g==='أنثى').length;
+  document.getElementById('countAll').textContent=playersCount;
+  document.getElementById('countMale').textContent=male;
+  document.getElementById('countFemale').textContent=female;
+  document.getElementById('countNeeded').textContent=(male>=6?'✅':'❌')+' / '+(female>=6?'✅':'❌');
+}
+function showStatus(msg, ok){ const s=document.getElementById('status'); s.textContent=msg; s.className='status '+(ok?'success':'error'); }
+async function checkName(){
+  const name=document.getElementById('teamName').value.trim();
+  const el=document.getElementById('availability');
+  nameAvailable=false;
+  if(!name){el.textContent='اكتب الاسم للتحقق من توفره'; el.className='availability'; return;}
+  const res=await fetch('/api/team-name-available?name='+encodeURIComponent(name));
+  const data=await res.json();
+  nameAvailable=data.available;
+  el.textContent=data.message;
+  el.className='availability '+(data.available?'ok':'bad');
+}
+document.getElementById('teamName').addEventListener('input',()=>{clearTimeout(nameTimer);nameTimer=setTimeout(checkName,450);});
+
+for(let i=0;i<12;i++) addPlayer();
+
+document.getElementById('registrationForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  await checkName();
+  if(!nameAvailable){showStatus('اسم المنتخب مستخدم أو غير صالح.', false);return;}
+  const genders=[...document.querySelectorAll('select[name^="gender_"]')].map(s=>s.value);
+  if(genders.filter(g=>g==='ذكر').length<6 || genders.filter(g=>g==='أنثى').length<6){showStatus('لازم يكون في الفريق على الأقل 6 ذكور و6 إناث.', false);return;}
+  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.textContent='جاري الحفظ...';
+  const fd=new FormData();
+  fd.append('team_name', document.getElementById('teamName').value.trim());
+  const players=[];
+  [...document.querySelectorAll('.player')].forEach((card,idx)=>{
+    const data={client_key:String(idx)};
+    ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{data[k]=card.querySelector(`[name="${k}_${idx}"]`)?.value?.trim()||'';});
+    ['photo','id_card','university_card'].forEach(k=>{const input=card.querySelector(`[name="${k}_${idx}"]`); if(input?.files?.[0]) fd.append(`${k}_${idx}`, input.files[0]);});
+    players.push(data);
+  });
+  fd.append('players_json', JSON.stringify(players));
+  try{
+    const res=await fetch('/api/register-team',{method:'POST',body:fd});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.detail||'حدث خطأ');
+    showStatus('تم تسجيل الفريق بنجاح ✅', true);
+    e.target.reset(); playersEl.innerHTML=''; playersCount=0; for(let i=0;i<12;i++) addPlayer(); checkName();
+  }catch(err){showStatus(err.message, false)}
+  finally{btn.disabled=false; btn.textContent='حفظ تسجيل الفريق ✅'}
+});
+</script>
+</body>
+</html>
