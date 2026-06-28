@@ -60,6 +60,8 @@
 let PASS = localStorage.getItem('reg_admin_pass') || '';
 let teams = [];
 let currentTeam = null;
+const digitMap = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+function normalizeDigits(value){return String(value || '').replace(/[٠-٩۰-۹]/g, d => digitMap[d] || d);}
 
 function status(id,msg,ok){const el=document.getElementById(id);el.textContent=msg;el.className='status '+(ok?'success':'error');}
 function headers(){return {'X-Admin-Password':PASS};}
@@ -90,8 +92,8 @@ function editPlayerTemplate(p,idx){
   const pass=encodeURIComponent(PASS);
   function link(kind,label){return links[kind]?`<a target="_blank" href="${links[kind]}?p=${pass}">${label}</a>`:''}
   return `<div class="player" data-idx="${idx}"><h3>لاعب رقم ${idx+1}</h3><div class="grid">
-    <input placeholder="الاسم" data-k="name" value="${escapeHtml(p.name)}"><input placeholder="السن" type="number" data-k="age" value="${escapeHtml(p.age)}"><input type="date" data-k="birthdate" value="${escapeHtml(p.birthdate)}">
-    <input placeholder="الرقم القومي" data-k="national_id" maxlength="14" value="${escapeHtml(p.national_id)}"><input placeholder="الجامعة" data-k="university" value="${escapeHtml(p.university)}"><input placeholder="الكلية" data-k="college" value="${escapeHtml(p.college)}">
+    <input placeholder="الاسم" data-k="name" value="${escapeHtml(p.name)}"><input placeholder="السن" type="text" inputmode="numeric" onblur="this.value=normalizeDigits(this.value)" data-k="age" value="${escapeHtml(p.age)}"><input type="date" data-k="birthdate" value="${escapeHtml(p.birthdate)}">
+    <input placeholder="الرقم القومي" data-k="national_id" inputmode="numeric" maxlength="14" onblur="this.value=normalizeDigits(this.value)" value="${escapeHtml(p.national_id)}"><input placeholder="الجامعة" data-k="university" value="${escapeHtml(p.university)}"><input placeholder="الكلية" data-k="college" value="${escapeHtml(p.college)}">
     <select data-k="gender"><option value="ذكر" ${p.gender==='ذكر'?'selected':''}>ذكر</option><option value="أنثى" ${p.gender==='أنثى'?'selected':''}>أنثى</option></select>
   </div><div class="filelinks">${link('photo','الصورة الشخصية')}${link('id_card','صورة البطاقة')}${link('university_card','صورة الكارنيه')}</div>
   <div class="grid" style="margin-top:12px"><div><label class="muted">استبدال الصورة الشخصية</label><input type="file" data-file="photo" accept="image/png,image/jpeg,image/webp"></div><div><label class="muted">استبدال صورة البطاقة</label><input type="file" data-file="id_card" accept="image/png,image/jpeg,image/webp"></div><div><label class="muted">استبدال صورة الكارنيه</label><input type="file" data-file="university_card" accept="image/png,image/jpeg,image/webp"></div></div>
@@ -109,6 +111,9 @@ async function saveEdit(){
     const key=old.id || old.client_key || ('new_'+idx);
     const p={id:old.id||null,client_key:key};
     card.querySelectorAll('[data-k]').forEach(inp=>p[inp.dataset.k]=inp.value.trim());
+    p.age = normalizeDigits(p.age);
+    p.national_id = normalizeDigits(p.national_id);
+    p.birthdate = normalizeDigits(p.birthdate);
     card.querySelectorAll('[data-file]').forEach(inp=>{if(inp.files&&inp.files[0])fd.append(inp.dataset.file+'_'+key, inp.files[0]);});
     players.push(p);
   });
