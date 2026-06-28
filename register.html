@@ -64,15 +64,17 @@ let playersCount = 0;
 let nameTimer = null;
 let nameAvailable = false;
 const playersEl = document.getElementById('players');
+const digitMap = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+function normalizeDigits(value){return String(value || '').replace(/[٠-٩۰-۹]/g, d => digitMap[d] || d);}
 
 function playerTemplate(i){
   return `<div class="player" data-index="${i}">
     <div class="player-title"><h3>لاعب رقم ${i+1}</h3>${i>=12?'<button type="button" class="remove" onclick="removePlayer('+i+')">حذف</button>':''}</div>
     <div class="player-grid">
       <div class="field"><label>اسم اللاعب</label><input required name="name_${i}" placeholder="الاسم بالكامل"></div>
-      <div class="field"><label>السن</label><input required name="age_${i}" type="number" min="1" max="100"></div>
-      <div class="field"><label>تاريخ الميلاد</label><input required name="birthdate_${i}" type="date"></div>
-      <div class="field"><label>الرقم القومي</label><input required name="national_id_${i}" inputmode="numeric" maxlength="14" placeholder="14 رقم"></div>
+      <div class="field"><label>السن</label><input required name="age_${i}" type="text" inputmode="numeric" maxlength="3" onblur="this.value=normalizeDigits(this.value)" placeholder="مثال: 20 أو ٢٠"></div>
+      <div class="field"><label>تاريخ الميلاد</label><input required name="birthdate_${i}" type="date" min="1950-01-01" max="2020-12-31" onclick="openDatePicker(this)" onfocus="openDatePicker(this)"></div>
+      <div class="field"><label>الرقم القومي</label><input required name="national_id_${i}" inputmode="numeric" maxlength="14" onblur="this.value=normalizeDigits(this.value)" placeholder="14 رقم عربي أو إنجليزي"></div>
       <div class="field"><label>الجامعة</label><input required name="university_${i}" placeholder="اسم الجامعة"></div>
       <div class="field"><label>الكلية</label><input required name="college_${i}" placeholder="اسم الكلية"></div>
       <div class="field"><label>النوع</label><select required name="gender_${i}" onchange="updateStats()"><option value="">اختار</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
@@ -84,6 +86,11 @@ function playerTemplate(i){
     </div>
   </div>`;
 }
+
+function openDatePicker(input){
+  try{ if(input && typeof input.showPicker === 'function') input.showPicker(); }catch(e){}
+}
+
 function rerenderNumbers(){[...document.querySelectorAll('.player')].forEach((card,idx)=>{card.dataset.index=idx;card.querySelector('h3').textContent='لاعب رقم '+(idx+1);});}
 function addPlayer(){ if(playersCount>=15){showStatus('الفريق لا يزيد عن 15 فرد.', false);return;} playersEl.insertAdjacentHTML('beforeend', playerTemplate(playersCount)); playersCount++; updateStats(); }
 function removePlayer(i){ if(playersCount<=12){showStatus('الفريق لا يقل عن 12 فرد.', false);return;} const cards=[...document.querySelectorAll('.player')]; cards[i]?.remove(); playersCount--; rerenderNumbers(); updateStats(); }
@@ -126,6 +133,9 @@ document.getElementById('registrationForm').addEventListener('submit', async (e)
   [...document.querySelectorAll('.player')].forEach((card,idx)=>{
     const data={client_key:String(idx)};
     ['name','age','birthdate','national_id','university','college','gender'].forEach(k=>{data[k]=card.querySelector(`[name="${k}_${idx}"]`)?.value?.trim()||'';});
+    data.age = normalizeDigits(data.age);
+    data.national_id = normalizeDigits(data.national_id);
+    data.birthdate = normalizeDigits(data.birthdate);
     ['photo','id_card','university_card'].forEach(k=>{const input=card.querySelector(`[name="${k}_${idx}"]`); if(input?.files?.[0]) fd.append(`${k}_${idx}`, input.files[0]);});
     players.push(data);
   });
