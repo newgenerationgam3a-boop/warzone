@@ -143,11 +143,6 @@ function playerTemplate(i){
       <div class="field"><label>الكلية</label><input required name="college_${i}" placeholder="اسم الكلية"></div>
       <div class="field"><label>النوع</label><select required name="gender_${i}" onchange="updateStats(); saveDraftSoon();"><option value="">اختار</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
     </div>
-    <div class="file-grid">
-      <div class="field"><label>صورة شخصية</label><input type="file" data-kind="photo" data-index="${i}" name="photo_${i}" accept="image/png,image/jpeg,image/webp"><div class="stored-file" id="stored_photo_${i}"></div></div>
-      <div class="field"><label>صورة البطاقة</label><input type="file" data-kind="id_card" data-index="${i}" name="id_card_${i}" accept="image/png,image/jpeg,image/webp"><div class="stored-file" id="stored_id_card_${i}"></div></div>
-      <div class="field"><label>صورة كارنيه الجامعة</label><input type="file" data-kind="university_card" data-index="${i}" name="university_card_${i}" accept="image/png,image/jpeg,image/webp"><div class="stored-file" id="stored_university_card_${i}"></div></div>
-    </div>
   </div>`;
 }
 function openDatePicker(input){ try{ if(input && typeof input.showPicker === 'function') input.showPicker(); }catch(e){} }
